@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
+const BusinessException = require("../common/exceptions/BusinessException");
 
 const clientes = [];
 
@@ -21,6 +22,14 @@ class ClientesController {
 
   store(req, res) {
     const { nome, email } = req.body;
+
+    if (email) {
+      const indice = clientes.findIndex((c) => c.email === email);
+
+      if (indice >= 0) {
+        throw new BusinessException("E-mail já utilizado", "CLI_01");
+      }
+    }
 
     const newId = uuidv4();
 
