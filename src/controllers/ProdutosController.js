@@ -1,6 +1,13 @@
 const { v4: uuidv4 } = require("uuid");
+const Yup = require("yup");
 
 const produtos = [];
+
+const validadorDeSchemaSaveOrUpdate = Yup.object().shape({
+  nome: Yup.string().required(),
+  descricao: Yup.string().min(6).required(),
+  valor: Yup.number().min(1).required(),
+});
 
 class ProdutosController {
   index(req, res) {
@@ -19,7 +26,11 @@ class ProdutosController {
     }
   }
 
-  store(req, res) {
+  async store(req, res) {
+    await validadorDeSchemaSaveOrUpdate.validate(req.body, {
+      abortEarly: false,
+    });
+
     const { nome, descricao, valor } = req.body;
 
     const newId = uuidv4();
@@ -36,7 +47,11 @@ class ProdutosController {
     res.send();
   }
 
-  update(req, res) {
+  async update(req, res) {
+    await validadorDeSchemaSaveOrUpdate.validate(req.body, {
+      abortEarly: false,
+    });
+
     const { id } = req.params;
 
     const { nome, descricao, valor } = req.body;

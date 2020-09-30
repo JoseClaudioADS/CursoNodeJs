@@ -65,6 +65,13 @@ class ClientesController {
     if (indice >= 0) {
       const clienteCadastrado = clientes[indice];
 
+      const existeClienteMesmoEmailIdDiferente = clientes.some(
+        (c) => c.email === email && c.id !== id
+      );
+      if (existeClienteMesmoEmailIdDiferente) {
+        throw new BusinessException("E-mail já utilizado", "CLI_01");
+      }
+
       const novasInformacoes = { email, nome };
 
       Object.assign(clienteCadastrado, novasInformacoes);
