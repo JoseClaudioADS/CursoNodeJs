@@ -1,8 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const Yup = require("yup");
+const db = require("../config/db");
 const BusinessException = require("../common/exceptions/BusinessException");
-
-const clientes = [];
 
 const validadorDeSchemaSaveOrUpdate = Yup.object().shape({
   nome: Yup.string().min(6).required(),
@@ -10,17 +9,19 @@ const validadorDeSchemaSaveOrUpdate = Yup.object().shape({
 });
 
 class ClientesController {
-  index(req, res) {
-    res.json(clientes);
+  async index(req, res) {
+    const result = await db.query("SELECT * FROM CLIENTES");
+
+    res.json(result.rows);
   }
 
-  show(req, res) {
+  async show(req, res) {
     const { id } = req.params;
 
-    const cliente = clientes.find((c) => c.id === id);
+    const result = await db.query(`SELECT * FROM CLIENTES WHERE ID = '${id}'`);
 
-    if (cliente) {
-      res.json(cliente);
+    if (result.rowCount > 0) {
+      res.json(result.rows[0]);
     } else {
       res.sendStatus(404);
     }
@@ -33,20 +34,19 @@ class ClientesController {
 
     const { nome, email } = req.body;
 
-    const indice = clientes.findIndex((c) => c.email === email);
-    if (indice >= 0) {
+    const result = await db.query(
+      `SELECT count(ID) FROM CLIENTES WHERE EMAIL = '${email}'`
+    );
+
+    if (result.rows[0].count > 0) {
       throw new BusinessException("E-mail já utilizado", "CLI_01");
     }
 
     const newId = uuidv4();
 
-    const novoCliente = {
-      id: newId,
-      nome,
-      email,
-    };
-
-    clientes.push(novoCliente);
+    await db.query(
+      `INSERT INTO CLIENTES (id, nome, email) VALUES ('${newId}', '${nome}', '${email}')`
+    );
 
     res.send();
   }
@@ -60,23 +60,20 @@ class ClientesController {
 
     const { nome, email } = req.body;
 
-    const indice = clientes.findIndex((c) => c.id === id);
+    const result = await db.query(`SELECT * FROM CLIENTES WHERE ID = '${id}'`);
 
-    if (indice >= 0) {
-      const clienteCadastrado = clientes[indice];
-
-      const existeClienteMesmoEmailIdDiferente = clientes.some(
-        (c) => c.email === email && c.id !== id
+    if (result.rowCount > 0) {
+      const resultClientePorEmail = await db.query(
+        `SELECT count(ID) FROM CLIENTES WHERE ID <> '${id}' AND EMAIL = '${email}'`
       );
-      if (existeClienteMesmoEmailIdDiferente) {
+
+      if (resultClientePorEmail.rows[0].count > 0) {
         throw new BusinessException("E-mail já utilizado", "CLI_01");
       }
 
-      const novasInformacoes = { email, nome };
-
-      Object.assign(clienteCadastrado, novasInformacoes);
-
-      clientes[indice] = clienteCadastrado;
+      await db.query(
+        `UPDATE CLIENTES SET NOME = '${nome}', EMAIL = '${email}' WHERE ID = '${id}'`
+      );
 
       res.send();
     } else {
@@ -84,13 +81,15 @@ class ClientesController {
     }
   }
 
-  destroy(req, res) {
+  async destroy(req, res) {
     const { id } = req.params;
 
-    const indice = clientes.findIndex((c) => c.id === id);
+    const result = await db.query(
+      `SELECT COUNT(ID) AS qtd FROM CLIENTES WHERE ID = '${id}'`
+    );
 
-    if (indice >= 0) {
-      clientes.splice(indice, 1);
+    if (result.rows[0].qtd > 0) {
+      await db.query(`DELETE FROM CLIENTES WHERE ID = '${id}'`);
       res.send();
     } else {
       res.sendStatus(404);

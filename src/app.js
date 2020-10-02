@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const { ValidationError } = require("yup");
 require("express-async-errors");
@@ -31,6 +32,7 @@ app.use((err, req, res, next) => {
     res.status(400).json(errorDetail);
   } else {
     //INTERNAL_SERVER_ERROR
+    console.log(err);
     res.sendStatus(500);
   }
 });
