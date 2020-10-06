@@ -1,7 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const Yup = require("yup");
-
-const produtos = [];
+const db = require("../config/db");
 
 const validadorDeSchemaSaveOrUpdate = Yup.object().shape({
   nome: Yup.string().required(),
@@ -10,17 +9,18 @@ const validadorDeSchemaSaveOrUpdate = Yup.object().shape({
 });
 
 class ProdutosController {
-  index(req, res) {
-    res.json(produtos);
+  async index(req, res) {
+    const result = await db.query("SELECT * FROM PRODUTOS");
+    res.json(result.rows);
   }
 
-  show(req, res) {
+  async show(req, res) {
     const { id } = req.params;
 
-    const produto = produtos.find((c) => c.id === id);
+    const result = await db.query(`SELECT * FROM PRODUTOS WHERE ID = '${id}'`);
 
-    if (produto) {
-      res.json(produto);
+    if (result.rowCount > 0) {
+      res.json(result.rows[0]);
     } else {
       res.sendStatus(404);
     }
@@ -35,14 +35,8 @@ class ProdutosController {
 
     const newId = uuidv4();
 
-    const novoProduto = {
-      id: newId,
-      nome,
-      descricao,
-      valor,
-    };
-
-    produtos.push(novoProduto);
+    await db.query(`INSERT INTO PRODUTOS (ID, NOME, DESCRICAO, VALOR) VALUES 
+    ('${newId}','${nome}','${descricao}','${valor}')`);
 
     res.send();
   }
@@ -54,18 +48,15 @@ class ProdutosController {
 
     const { id } = req.params;
 
-    const { nome, descricao, valor } = req.body;
+    const result = await db.query(
+      `SELECT COUNT(ID) FROM PRODUTOS WHERE ID = '${id}'`
+    );
 
-    const indice = produtos.findIndex((c) => c.id === id);
+    if (result.rows[0].count > 0) {
+      const { nome, descricao, valor } = req.body;
 
-    if (indice >= 0) {
-      const produtoCadastrado = produtos[indice];
-
-      const novasInformacoes = { descricao, valor, nome };
-
-      Object.assign(produtoCadastrado, novasInformacoes);
-
-      produtos[indice] = produtoCadastrado;
+      await db.query(`UPDATE PRODUTOS SET NOME = '${nome}', 
+      DESCRICAO = '${descricao}', VALOR = '${valor}' WHERE ID = '${id}'`);
 
       res.send();
     } else {
@@ -73,13 +64,15 @@ class ProdutosController {
     }
   }
 
-  destroy(req, res) {
+  async destroy(req, res) {
     const { id } = req.params;
 
-    const indice = produtos.findIndex((c) => c.id === id);
+    const result = await db.query(
+      `SELECT COUNT(ID) FROM PRODUTOS WHERE ID = '${id}'`
+    );
 
-    if (indice >= 0) {
-      produtos.splice(indice, 1);
+    if (result.rows[0].count > 0) {
+      await db.query(`DELETE FROM PRODUTOS WHERE ID = '${id}'`);
       res.send();
     } else {
       res.sendStatus(404);

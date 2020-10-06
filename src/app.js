@@ -5,12 +5,14 @@ require("express-async-errors");
 const BusinessException = require("./common/exceptions/BusinessException");
 const clientesRouter = require("./routes/clientesRouter");
 const produtosRouter = require("./routes/produtosRouter");
+const pedidosRouter = require("./routes/pedidosRouter");
 
 const app = express();
 app.use(express.json());
 
 app.use("/clientes", clientesRouter);
 app.use("/produtos", produtosRouter);
+app.use("/pedidos", pedidosRouter);
 
 app.use((err, req, res, next) => {
   if (err instanceof BusinessException) {
