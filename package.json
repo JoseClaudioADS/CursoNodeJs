@@ -17,6 +17,8 @@
     "jsonwebtoken": "^8.5.1",
     "morgan": "^1.10.0",
     "pg": "8.3.3",
+    "pg-hstore": "^2.3.3",
+    "sequelize": "^6.3.5",
     "uuid": "8.3.0",
     "yup": "0.29.3"
   },

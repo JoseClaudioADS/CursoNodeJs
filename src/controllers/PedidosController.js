@@ -1,13 +1,14 @@
 const { v4: uuidv4 } = require("uuid");
 const Yup = require("yup");
 const db = require("../config/db");
+const Cliente = require("../entities/Cliente");
+const Pedido = require("../entities/Pedido");
+const PedidoProdutos = require("../entities/PedidoProdutos");
 
 class PedidosController {
   async index(req, res) {
-    const result = await db.query(`SELECT P.ID id, P.DATA_HORA dataHora, C.NOME nome 
-    FROM PEDIDOS P INNER JOIN 
-    CLIENTES C ON C.ID = P.ID_CLIENTE`);
-    res.json(result.rows);
+    const result = await Pedido.findAll({ include: [Cliente] });
+    res.json(result);
   }
 
   async show(req, res) {
@@ -19,7 +20,9 @@ class PedidosController {
     INNER JOIN CLIENTES C ON C.ID = P.ID_CLIENTE
     WHERE P.ID = '${id}'`);
 
-    if (result.rowCount > 0) {
+    const pedido = result[0];
+
+    if (pedido) {
       const resultProdutos = await db.query(`
         SELECT P.NOME, P.VALOR
         FROM PEDIDOS_PRODUTOS PP 
@@ -27,18 +30,20 @@ class PedidosController {
         WHERE PP.ID_PEDIDO = '${id}'
       `);
 
-      const pedido = result.rows[0];
-      const produtos = resultProdutos.rows;
-      pedido.produtos = produtos;
+      const produtos = resultProdutos;
 
-      const total = produtos.reduce((valorAnterior, produto) => {
+      const responsePedido = { ...pedido[0] };
+
+      responsePedido.produtos = produtos[0];
+
+      const total = produtos[0].reduce((valorAnterior, produto) => {
         valorAnterior = +valorAnterior + +produto.valor;
         return valorAnterior;
       }, 0);
 
-      pedido.total = total;
+      responsePedido.total = total;
 
-      res.json(pedido);
+      res.json(responsePedido);
     } else {
       res.sendStatus(404);
     }
@@ -58,15 +63,13 @@ class PedidosController {
 
     const newId = uuidv4();
 
-    await db.query(`INSERT INTO PEDIDOS (ID, ID_CLIENTE, DATA_HORA) VALUES 
-    ('${newId}','${id_cliente}','${new Date().toISOString()}')`);
+    await Pedido.create({ id: newId, id_cliente });
 
     const promisesProdutos = [];
 
     produtos.forEach((id_produto) => {
       promisesProdutos.push(
-        db.query(`INSERT INTO PEDIDOS_PRODUTOS (ID_PEDIDO, ID_PRODUTO)
-       VALUES ('${newId}', '${id_produto}')`)
+        PedidoProdutos.create({ id_pedido: newId, id_produto })
       );
     });
 

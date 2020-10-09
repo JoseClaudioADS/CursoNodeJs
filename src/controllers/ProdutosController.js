@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const Yup = require("yup");
-const db = require("../config/db");
+const Produto = require("../entities/Produto");
 
 const validadorDeSchemaSaveOrUpdate = Yup.object().shape({
   nome: Yup.string().required(),
@@ -10,17 +10,17 @@ const validadorDeSchemaSaveOrUpdate = Yup.object().shape({
 
 class ProdutosController {
   async index(req, res) {
-    const result = await db.query("SELECT * FROM PRODUTOS");
-    res.json(result.rows);
+    const result = await Produto.findAll();
+    res.json(result);
   }
 
   async show(req, res) {
     const { id } = req.params;
 
-    const result = await db.query(`SELECT * FROM PRODUTOS WHERE ID = '${id}'`);
+    const result = await Produto.findByPk(id);
 
-    if (result.rowCount > 0) {
-      res.json(result.rows[0]);
+    if (result) {
+      res.json(result);
     } else {
       res.sendStatus(404);
     }
@@ -35,8 +35,12 @@ class ProdutosController {
 
     const newId = uuidv4();
 
-    await db.query(`INSERT INTO PRODUTOS (ID, NOME, DESCRICAO, VALOR) VALUES 
-    ('${newId}','${nome}','${descricao}','${valor}')`);
+    await Produto.create({
+      id: newId,
+      nome,
+      descricao,
+      valor,
+    });
 
     res.send();
   }
@@ -48,15 +52,16 @@ class ProdutosController {
 
     const { id } = req.params;
 
-    const result = await db.query(
-      `SELECT COUNT(ID) FROM PRODUTOS WHERE ID = '${id}'`
-    );
+    const produto = await Produto.findByPk(id);
 
-    if (result.rows[0].count > 0) {
+    if (produto) {
       const { nome, descricao, valor } = req.body;
 
-      await db.query(`UPDATE PRODUTOS SET NOME = '${nome}', 
-      DESCRICAO = '${descricao}', VALOR = '${valor}' WHERE ID = '${id}'`);
+      await produto.update({
+        nome,
+        descricao,
+        valor,
+      });
 
       res.send();
     } else {
@@ -67,12 +72,10 @@ class ProdutosController {
   async destroy(req, res) {
     const { id } = req.params;
 
-    const result = await db.query(
-      `SELECT COUNT(ID) FROM PRODUTOS WHERE ID = '${id}'`
-    );
+    const produto = await Produto.findByPk(id);
 
-    if (result.rows[0].count > 0) {
-      await db.query(`DELETE FROM PRODUTOS WHERE ID = '${id}'`);
+    if (produto) {
+      await produto.destroy();
       res.send();
     } else {
       res.sendStatus(404);

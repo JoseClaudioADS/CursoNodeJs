@@ -3,12 +3,15 @@ const express = require("express");
 const { ValidationError } = require("yup");
 const morgan = require("morgan");
 require("express-async-errors");
+const sequelize = require("./config/db");
 const BusinessException = require("./common/exceptions/BusinessException");
 const clientesRouter = require("./routes/clientesRouter");
 const produtosRouter = require("./routes/produtosRouter");
 const pedidosRouter = require("./routes/pedidosRouter");
 const usuariosRouter = require("./routes/usuariosRouter");
 const authRouter = require("./routes/authRouter");
+
+sequelize.sync({ alter: true });
 
 const app = express();
 app.use(morgan("dev"));

@@ -1,7 +1,7 @@
 const Yup = require("yup");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const db = require("../config/db");
+const Usuario = require("../entities/Usuario");
 const BusinessException = require("../common/exceptions/BusinessException");
 
 class AuthController {
@@ -17,13 +17,13 @@ class AuthController {
 
     const { email, senha } = req.body;
 
-    const resultUsuario = await db.query(
-      `SELECT * FROM USUARIOS WHERE LOWER(EMAIL) = '${email.toLowerCase()}'`
-    );
+    const usuario = await Usuario.findOne({
+      where: {
+        email,
+      },
+    });
 
-    if (resultUsuario.rowCount > 0) {
-      const usuario = resultUsuario.rows[0];
-
+    if (usuario) {
       const senhaConfere = await bcrypt.compare(senha, usuario.senha);
 
       const access_token = jwt.sign(

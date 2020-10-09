@@ -1,7 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const Yup = require("yup");
-const bcrypt = require("bcrypt");
-const db = require("../config/db");
+const Usuario = require("../entities/Usuario");
 const BusinessException = require("../common/exceptions/BusinessException");
 
 const validadorDeSchemaSaveOrUpdate = Yup.object().shape({
@@ -18,21 +17,19 @@ class UsuariosController {
 
     const { nome, email, senha } = req.body;
 
-    const result = await db.query(
-      `SELECT count(ID) FROM USUARIOS WHERE EMAIL = '${email}'`
-    );
+    const countPorEmail = await Usuario.count({
+      where: {
+        email,
+      },
+    });
 
-    if (result.rows[0].count > 0) {
+    if (countPorEmail > 0) {
       throw new BusinessException("E-mail já utilizado", "USU_01");
     }
 
     const newId = uuidv4();
 
-    const senhaEncriptada = await bcrypt.hash(senha, 5);
-
-    await db.query(
-      `INSERT INTO USUARIOS (id, nome, email, senha) VALUES ('${newId}', '${nome}', '${email}', '${senhaEncriptada}')`
-    );
+    await Usuario.create({ id: newId, nome, email, senha });
 
     res.send();
   }
